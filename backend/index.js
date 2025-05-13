@@ -6,7 +6,7 @@ const jwt = require("jsonwebtoken");
 const Account = require("./models/account.model");
 const Chat = require("./models/chats.model");
 const { cloudinary } = require("./cloundinary");
-const { GoogleGenAI, Modality } = require("@google/genai");
+const { GoogleGenAI, Modality, Type } = require("@google/genai");
 
 const PORT = process.env.PORT || 8000;
 app.use(cors());
@@ -76,20 +76,10 @@ const uploadImageToCloudinary = async (base64, fileName) => {
         overwrite: true,
       }
     );
-    console.log(
-      `Uploaded image ${fileName}. Deleting after 5 mins. ${
-        new Date().getHours() + " " + new Date().getMinutes()
-      }`
-    );
 
     setTimeout(async () => {
       try {
         await cloudinary.uploader.destroy(fileName);
-        console.log(
-          `Image ${fileName} deleted from Cloudinary. ${
-            new Date().getHours() + " " + new Date().getMinutes()
-          }`
-        );
       } catch (err) {
         console.error(`Failed to delete image ${fileName}: `, err.message);
       }
@@ -134,8 +124,6 @@ app.post("/upload", async (req, res) => {
         chatType = "text";
     }
 
-   
-
     switch (chatType) {
       case "image_generation": {
         aiResult = await ai.models.generateContent({
@@ -154,7 +142,7 @@ app.post("/upload", async (req, res) => {
 
         for (const part of contentParts) {
           if (part.inlineData?.data) {
-            const fileName = `generated_image_${Date.now()}`;
+            const fileName = `imageBot_generated_image_${Date.now()}`;
             imageUrlResult = await uploadImageToCloudinary(
               part.inlineData.data,
               fileName
@@ -162,10 +150,9 @@ app.post("/upload", async (req, res) => {
           }
           if (part.text) textResponse += part.text;
         }
-
-        if (!imageUrlResult && !textResponse) {
-          return res.status(500).json({
-            message: "AI did not return valid content",
+        if (!imageUrlResult) {
+          return res.status(400).json({
+            message: "Image generation failed",
             status: false,
           });
         }
@@ -189,31 +176,39 @@ app.post("/upload", async (req, res) => {
               },
             },
             {
-              text: `prompt: ${context}
-              Remember: Respond only with valid JSON in the format: {
-              "context": "ai generated response" 
-              }`,
+              text: `prompt: ${context}`,
             },
           ],
+          config: {
+            responseMimeType: "application/json",
+            responseSchema: {
+              type: "object",
+              type: Type.OBJECT,
+              properties: {
+                context: {
+                  type: Type.STRING,
+                  description: "AI generated response",
+                },
+              },
+            },
+          },
         });
 
-        const rawText = aiResult.text || "";
-        result = JSON.parse(
-          rawText.replace(/```(?:json)?\s*([\s\S]*?)\s*```/, "$1").trim()
-        );
+        result = JSON.parse(aiResult.text);
 
         // delete the image from cloudinary using url
         const imageUrlParts = imageUrl.split("/");
         const publicId = imageUrlParts[imageUrlParts.length - 1].split(".")[0];
-        await cloudinary.uploader.destroy(publicId, {
-          resource_type: "image",
-        });
-        console.log(
-          `Image ${publicId} deleted from Cloudinary. ${
-            new Date().getHours() + " " + new Date().getMinutes()
-          }`
-        );
 
+        setTimeout(async () => {
+          try {
+            await cloudinary.uploader.destroy(publicId, {
+              resource_type: "image",
+            });
+          } catch (err) {
+            console.error(`Failed to delete image ${publicId}: `, err.message);
+          }
+        }, 2 * 60 * 1000); // 2 minutes
         break;
       }
 
@@ -226,11 +221,11 @@ app.post("/upload", async (req, res) => {
             ...(chatType === "code" && { tools: [{ codeExecution: {} }] }),
           },
         });
-        
+
         const stream = await aiResult.sendMessage({
           message: context,
         });
-        
+
         const chunks = stream.text;
 
         result = {
@@ -300,6 +295,30 @@ app.post("/upload", async (req, res) => {
 app.get("/getChats/:userId", async (req, res) => {
   try {
     const { userId } = req.params;
+    //get all images from cloudinary starting with imageBot_generated_image
+    const images = await cloudinary.api.resources({
+      type: "upload",
+      prefix: "imageBot_generated_image",
+      max_results: 30,
+    });
+
+    // delete all images from cloudinary
+    if (images.resources.length !== 0) {
+      for (const image of images.resources) {
+        const publicId = image.public_id;
+        const createdAt = new Date(image.created_at);
+        const now = new Date();
+        const diffMs = now - createdAt;
+        const diffMinutes = diffMs / (60 * 1000);
+
+        if (diffMinutes >= 5) {
+          await cloudinary.uploader.destroy(publicId, {
+            resource_type: "image",
+          });
+        }
+      }
+    }
+
     if (!userId) {
       return res.status(400).json({
         message: "User ID is required",

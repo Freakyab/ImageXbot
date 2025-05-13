@@ -1,26 +1,28 @@
 import * as React from "react";
-import { Textarea } from "@/components/ui/textarea";
+// import { Textarea } from "@/components/ui/textarea";
+import TextInput from "react-autocomplete-input";
 import { cn } from "@/lib/utils";
+import "react-autocomplete-input/dist/bundle.css";
 
-interface ChatInputProps
-  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
+// interface ChatInputProps
+// extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
-const ChatInput = React.forwardRef<HTMLTextAreaElement, ChatInputProps>(
-  ({ className, ...props }, ref) => {
-    return (
-      <Textarea
-        autoComplete="off"
-        ref={ref}
-        name="message"
-        className={cn(
-          "max-h-12 px-4 py-3 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full rounded-md flex items-center h-16 resize-none",
-          className
-        )}
-        {...props}
-      />
-    );
-  }
-);
+const ChatInput = React.forwardRef<any, any>(({ className, formRef , ...props }, ref) => {
+  return (
+    <TextInput
+      trigger={["/"]}
+      options={{ "/": ["imagine" , "code"] }}
+      // autoComplete="off"
+      ref={formRef}
+      name="message"
+      className={cn(
+        "max-h-12 px-4 my-2 mb-2 py-3 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full rounded-md flex items-center h-16 resize-none",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 ChatInput.displayName = "ChatInput";
 
 export { ChatInput };

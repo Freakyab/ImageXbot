@@ -129,7 +129,7 @@ function MessageBox({
                   <div className="py-4">
                     <img
                       src={message.imageUrl}
-                      alt="deleted from server"
+                      alt="Preview is not available"
                       className="w-64 h-auto mt-2 rounded-lg"
                     />
                   </div>

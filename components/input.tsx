@@ -24,10 +24,13 @@ function InputBox({
   const [preview, setPreview] = React.useState<string | null>(null);
   const [showSuggestions, setShowSuggestions] = React.useState(false);
   const [coolDownTime, setCoolDownTime] = React.useState(0);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [value, setValue] = React.useState("");
 
-  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const inputValue = event.target.value;
 
+  const handleInputChange = (event: string) => {
+    const inputValue = event;
+    setValue(inputValue);
     if (inputValue.length === 0 || inputValue.includes("/imagine")) {
       setShowSuggestions(false);
     } else if (
@@ -61,7 +64,7 @@ function InputBox({
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     try {
       event.preventDefault();
-
+      setIsLoading(true);
       if (user === null) {
         toast.error("Please login to send a message");
         return;
@@ -108,7 +111,11 @@ function InputBox({
 
       if (file) {
         const formData = new FormData();
-        formData.append("file", file);
+        // change name of file as imageBot_generated_image_${Date.now()}
+        const fileName = `imageBot_generated_image_${Date.now()}`;
+        formData.append("file", file, fileName);
+        // formData.append("file", file);
+
         formData.append("upload_preset", "default-preset"); // make sure this preset is unsigned
 
         const uploadResponse = await fetch(
@@ -200,9 +207,9 @@ function InputBox({
     } finally {
       console.log("Fetch chats completed");
       setFile(null);
-      setPreview(null);
-
-      (event.target as HTMLFormElement).reset();
+      setPreview(null); 
+      setValue("");
+      setIsLoading(false);
     }
   };
 
@@ -256,6 +263,7 @@ function InputBox({
           </div>
         )}
         <ChatInput
+          value={value}
           onChange={handleInputChange}
           placeholder="Type your message here..."
           className="min-h-12 resize-none rounded-lg bg-background border-0 p-3 shadow-none focus-visible:ring-0"
@@ -278,7 +286,7 @@ function InputBox({
             <span className="sr-only">Use Microphone</span>
           </Button> */}
 
-          <Button size="sm" className="ml-auto gap-1.5">
+          <Button size="sm" className="ml-auto gap-1.5" disabled={isLoading}>
             Send Message
             <CornerDownLeft className="size-3.5" />
           </Button>
