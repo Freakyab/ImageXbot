@@ -1,0 +1,1 @@
+export const timer = 30 //secs
