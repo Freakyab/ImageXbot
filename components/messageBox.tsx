@@ -115,7 +115,7 @@ function MessageBox({
   return (
     <div className="flex w-full h-[calc(100vh-16rem)] sm:h-[calc(100vh-12rem)] overflow-y-auto py-2">
       <ChatMessageList>
-        {chats.map((message, index) => {
+        {chats.map((message) => {
           const variant = message.type === "user" ? "sent" : "received";
           return (
             <ChatBubble key={message._id} layout="ai">
