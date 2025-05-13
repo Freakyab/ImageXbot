@@ -12,6 +12,8 @@ import { Chat } from "@/type";
 import { backendUrl } from "../lib/backendUrl";
 import { useUser } from "./context/userContext";
 import toast from "react-hot-toast";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
 
 function MessageBox({
   chats,
@@ -77,30 +79,36 @@ function MessageBox({
       });
   };
 
-  const specialKeywords = (content: string) => {
+  const SpecialKeywords = ({content}: {content: string}) => {
     const keywords = ["/imagine"];
     const keywordRegex = new RegExp(`(${keywords.join("|")})`, "g");
-    const parts = content.split(keywordRegex);
-    console.log("Parts:", parts);
-    const keywordElements = parts.map((part, index) => {
-      if (keywords.includes(part)) {
-        return (
-          <span
-            key={index}
-            className="font-bold text-blue-600"
-            onClick={() => {
-              console.log("Keyword clicked:", part);
-            }}>
-            {part}
-          </span>
-        );
-      }
-      return part;
+    // Sanitize the markdown before rendering
+    const html = marked.parse(content);
+    const sanitizedHtml = DOMPurify.sanitize(typeof html === "string" ? html : "");
+
+    // Replace keywords in the HTML with span elements
+    const replacedHtml = sanitizedHtml.replace(keywordRegex, (match) => {
+      return `<span class="font-bold text-blue-600 special-keyword" data-keyword="${match}">${match}</span>`;
     });
+
+    // Use useEffect to add click handlers after rendering
+    React.useEffect(() => {
+      const handler = (e: MouseEvent) => {
+        const target = e.target as HTMLElement;
+        if (target.classList.contains("special-keyword")) {
+          console.log("Keyword clicked:", target.dataset.keyword);
+        }
+      };
+      document.addEventListener("click", handler);
+      return () => document.removeEventListener("click", handler);
+    }, []);
+
     return (
-      <span key={content} className="">
-        {keywordElements}
-      </span>
+      <span
+        key={content}
+        className="prose prose-sm max-w-none"
+        dangerouslySetInnerHTML={{ __html: replacedHtml }}
+      />
     );
   };
 
@@ -111,9 +119,12 @@ function MessageBox({
           const variant = message.type === "user" ? "sent" : "received";
           return (
             <ChatBubble key={message._id} layout="ai">
-              <ChatBubbleAvatar fallback={variant === "sent" ? "US" : "AI"} />
+              <ChatBubbleAvatar
+                fallback={variant === "sent" ? "US" : "AI"}
+                src={(variant === "sent" && user?.picture) || ""}
+              />
               <ChatBubbleMessage>
-                {specialKeywords(message.content) as React.ReactNode}
+               <SpecialKeywords content={message.content} />
                 {message.imageUrl && (
                   <div className="py-4">
                     <img

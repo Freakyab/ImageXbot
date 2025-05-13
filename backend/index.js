@@ -93,7 +93,7 @@ const uploadImageToCloudinary = async (base64, fileName) => {
       } catch (err) {
         console.error(`Failed to delete image ${fileName}: `, err.message);
       }
-    }, 5 * 60 * 1000);  // 5 minutes
+    }, 5 * 60 * 1000); // 5 minutes
 
     return stream.secure_url;
   } catch (err) {
@@ -104,7 +104,7 @@ const uploadImageToCloudinary = async (base64, fileName) => {
 
 app.post("/upload", async (req, res) => {
   try {
-    const { context, imageUrl, userId } = req.body;
+    const { context, imageUrl, userId, history } = req.body;
     if (!context || !userId) {
       return res.status(400).json({
         message: "All fields are required",
@@ -127,11 +127,14 @@ app.post("/upload", async (req, res) => {
       case isImageRequest:
         chatType = "image_analysis";
         break;
+      case /^\/code/i.test(context):
+        chatType = "code";
+        break;
       default:
         chatType = "text";
     }
 
-    console.log("Chat Type:", chatType);
+   
 
     switch (chatType) {
       case "image_generation": {
@@ -216,22 +219,28 @@ app.post("/upload", async (req, res) => {
 
       case "text":
       default: {
-        aiResult = await ai.models.generateContent({
+        aiResult = ai.chats.create({
           model: "gemini-2.0-flash",
-          contents: [
-            {
-              text: `prompt: ${context}
-                Remember: Respond only with valid JSON in the format: {
-                "context": "ai generated response" 
-                }`,
-            },
-          ],
+          history,
+          config: {
+            ...(chatType === "code" && { tools: [{ codeExecution: {} }] }),
+          },
         });
+        
+        const stream = await aiResult.sendMessage({
+          message: context,
+        });
+        
+        const chunks = stream.text;
 
-        const rawText = aiResult.text || "";
-        result = JSON.parse(
-          rawText.replace(/```(?:json)?\s*([\s\S]*?)\s*```/, "$1").trim()
-        );
+        result = {
+          context: chunks,
+        };
+
+        aiResult.usageMetadata = {
+          promptTokenCount: stream.usageMetadata.promptTokenCount,
+          candidatesTokenCount: stream.usageMetadata.candidatesTokenCount,
+        };
         break;
       }
     }

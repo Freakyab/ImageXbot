@@ -2,17 +2,20 @@
 import React from "react";
 import { ChatInput } from "./ui/chat/chat-input";
 import { Button } from "./ui/button";
-import { CornerDownLeft, Mic, Paperclip } from "lucide-react";
+import { CornerDownLeft, Paperclip } from "lucide-react";
 import { useUser } from "./context/userContext";
 import { backendUrl } from "../lib/backendUrl";
 import { Chat } from "@/type";
 import { toast } from "react-hot-toast";
 import { timer } from "@/lib/timer";
+import filteredChats from "@/lib/filteredChats";
 
 function InputBox({
+  chats,
   setChats,
   setError,
 }: {
+  chats: Chat[];
   setChats: React.Dispatch<React.SetStateAction<Chat[]>>;
   setError: React.Dispatch<React.SetStateAction<string | null>>;
 }) {
@@ -25,11 +28,9 @@ function InputBox({
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     const inputValue = event.target.value;
 
-    if (inputValue.length === 0) {
+    if (inputValue.length === 0 || inputValue.includes("/imagine")) {
       setShowSuggestions(false);
-    }
-
-    if (
+    } else if (
       inputValue.includes("/") ||
       inputValue.includes("imagine") ||
       inputValue.includes("generate") ||
@@ -60,20 +61,14 @@ function InputBox({
   const handleFormSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     try {
       event.preventDefault();
-      if (coolDownTime > 0) {
-        toast.error(
-          `Please wait before sending another message. time left : ${
-            timer - coolDownTime
-          } seconds`
-        );
-        return;
-      }
-      setShowSuggestions(false);
-      setError(null);
+
       if (user === null) {
         toast.error("Please login to send a message");
         return;
       }
+
+      setShowSuggestions(false);
+      setError(null);
 
       let imageUrl = "";
       const existingFormData = new FormData(event.currentTarget);
@@ -81,6 +76,15 @@ function InputBox({
 
       if (!context) {
         toast.error("Please enter a message");
+        return;
+      }
+
+      if (coolDownTime > 0 && context.toString().includes("/imagine")) {
+        toast.error(
+          `Please wait before sending another message. time left : ${
+            timer - coolDownTime
+          } seconds`
+        );
         return;
       }
 
@@ -129,6 +133,7 @@ function InputBox({
           context,
           imageUrl,
           userId: user._id,
+          history: filteredChats(chats),
         }),
       });
       const data = await response.json();

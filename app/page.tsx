@@ -13,7 +13,7 @@ export default function Home() {
       <Navbar chats={chats}/>
       <div className="flex flex-col px-8">
         <MessageBox chats={chats} setChats={setChats} error={error}/>
-        <InputBox setChats={setChats} setError={setError}/>
+        <InputBox chats={chats} setChats={setChats} setError={setError}/>
       </div>
     </main>
   );
