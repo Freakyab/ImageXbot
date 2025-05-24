@@ -1,6 +1,5 @@
 import * as React from "react";
 import { ArrowDown } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useAutoScroll } from "@/components/ui/chat/hooks/useAutoScroll";
 
 interface ChatMessageListProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -21,29 +20,29 @@ const ChatMessageList = React.forwardRef<HTMLDivElement, ChatMessageListProps>(
     });
 
     return (
-      <div className="relative w-full h-full">
+      <div className="relative w-full h-full ">
         <div
-          className={`flex flex-col w-full h-full p-4 overflow-y-auto ${className}`}
+          className={`custom-scrollbar flex flex-col h-full overflow-x-hidden overflow-y-auto pb-56 px-16 ${className}`}
+          
           ref={scrollRef}
           onWheel={disableAutoScroll}
           onTouchMove={disableAutoScroll}
-          {...props}
-        >
-          <div className="flex flex-col gap-6">{children}</div>
+          {...props}>
+          <div className="flex flex-col gap-6 text-sm sm:text-lg">{children}</div>
         </div>
 
         {!isAtBottom && (
-          <Button
+          <button
             onClick={() => {
               scrollToBottom();
             }}
-            size="icon"
-            variant="outline"
-            className="absolute bottom-2 left-1/2 transform -translate-x-1/2 inline-flex rounded-full shadow-md"
-            aria-label="Scroll to bottom"
-          >
-            <ArrowDown className="h-4 w-4" />
-          </Button>
+            className="text-white fixed bottom-40 left-[48%] flex items-center justify-center w-10 h-10 
+          bg-gradient-to-r from-purple-500 to-violet-500 
+          rounded-full transition-all duration-300 transform hover:scale-110 shadow-lg 
+          border border-white/20 backdrop-blur-sm"
+            aria-label="Scroll up">
+            <ArrowDown className="w-4 h-4 text-white" />
+          </button>
         )}
       </div>
     );

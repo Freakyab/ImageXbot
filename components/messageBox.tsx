@@ -30,6 +30,7 @@ function MessageBox({
     const fetchChats = async () => {
       try {
         if (user === null) {
+          setChats([]);
           throw new Error("User is not logged in");
         }
 
@@ -79,16 +80,18 @@ function MessageBox({
       });
   };
 
-  const SpecialKeywords = ({content}: {content: string}) => {
+  const SpecialKeywords = ({ content }: { content: string }) => {
     const keywords = ["/imagine"];
     const keywordRegex = new RegExp(`(${keywords.join("|")})`, "g");
     // Sanitize the markdown before rendering
     const html = marked.parse(content);
-    const sanitizedHtml = DOMPurify.sanitize(typeof html === "string" ? html : "");
+    const sanitizedHtml = DOMPurify.sanitize(
+      typeof html === "string" ? html : ""
+    );
 
     // Replace keywords in the HTML with span elements
     const replacedHtml = sanitizedHtml.replace(keywordRegex, (match) => {
-      return `<span class="font-bold text-blue-600 special-keyword" data-keyword="${match}">${match}</span>`;
+      return `<span class="font-bold text- special-keyword" data-keyword="${match}">${match}</span>`;
     });
 
     // Use useEffect to add click handlers after rendering
@@ -113,24 +116,36 @@ function MessageBox({
   };
 
   return (
-    <div className="flex w-full h-[calc(100vh-16rem)] sm:h-[calc(100vh-12rem)] overflow-y-auto py-2">
+    // <div className="flex w-full h-[calc(100vh-16rem)] sm:h-[calc(100vh-14rem)] overflow-y-auto py-2">
+    <div className="flex w-full overflow-y-auto py-2 h-screen">
+      <div
+        className="h-36 flex items-center justify-center fixed -bottom-0 left-0 right-0 mx-auto pointer-events-none
+        bg-gradient-to-b from-transparent to-gray-900/85
+        "
+        style={{
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)", // For Safari compatibility
+          zIndex: 1,
+        }}></div>
+
       <ChatMessageList>
         {chats.map((message) => {
           const variant = message.type === "user" ? "sent" : "received";
           return (
             <ChatBubble key={message._id} layout="ai">
               <ChatBubbleAvatar
+                className="rounded-lg shadow-lg"
                 fallback={variant === "sent" ? "US" : "AI"}
                 src={(variant === "sent" && user?.picture) || ""}
               />
               <ChatBubbleMessage>
-               <SpecialKeywords content={message.content} />
+                <SpecialKeywords content={message.content} />
                 {message.imageUrl && (
                   <div className="py-4">
                     <img
                       src={message.imageUrl}
                       alt="Preview is not available"
-                      className="w-64 h-auto mt-2 rounded-lg"
+                      className="w-64 h-auto rounded-lg"
                     />
                   </div>
                 )}
@@ -161,7 +176,7 @@ function MessageBox({
                   </div>
                 )}
                 {message.tokenUsed !== 0 && (
-                  <div className="absolute bottom-1 right-1 flex items-center gap-1 rounded-md bg-gray-100 px-2 py-0.5 text-xs text-gray-600 shadow-sm">
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 disabled:from-gray-600 disabled:to-gray-700 transition-all duration-200 text-white shadow-lg px-2 py-0.5 text-xs">
                     <Zap className="size-3" />
                     <span>
                       {message.tokenUsed.toLocaleString(undefined, {
@@ -174,6 +189,7 @@ function MessageBox({
             </ChatBubble>
           );
         })}
+
         {chats.length % 2 !== 0 && error === null && (
           <ChatBubble variant="received">
             <ChatBubbleAvatar fallback="AI" />

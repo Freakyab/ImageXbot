@@ -23,7 +23,7 @@ const chatBubbleVariant = cva(
       variant: "received",
       layout: "default",
     },
-  },
+  }
 );
 
 interface ChatBubbleProps
@@ -35,21 +35,20 @@ const ChatBubble = React.forwardRef<HTMLDivElement, ChatBubbleProps>(
     <div
       className={cn(
         chatBubbleVariant({ variant, layout, className }),
-        "relative group",
+        "relative group"
       )}
       ref={ref}
-      {...props}
-    >
+      {...props}>
       {React.Children.map(children, (child) =>
         React.isValidElement(child) && typeof child.type !== "string"
           ? React.cloneElement(child, {
               variant,
               layout,
             } as React.ComponentProps<typeof child.type>)
-          : child,
+          : child
       )}
     </div>
-  ),
+  )
 );
 ChatBubble.displayName = "ChatBubble";
 
@@ -67,7 +66,9 @@ const ChatBubbleAvatar: React.FC<ChatBubbleAvatarProps> = ({
 }) => (
   <Avatar className={className}>
     <AvatarImage src={src} alt="Avatar" />
-    <AvatarFallback>{fallback}</AvatarFallback>
+    <AvatarFallback className="p-2 bg-gradient-to-r from-purple-500 to-violet-500 rounded-lg shadow-lg text-white">
+      {fallback}
+    </AvatarFallback>
   </Avatar>
 );
 
@@ -102,16 +103,17 @@ const ChatBubbleMessage = React.forwardRef<
 >(
   (
     { className, variant, layout, isLoading = false, children, ...props },
-    ref,
+    ref
   ) => (
     <div
       className={cn(
         chatBubbleMessageVariants({ variant, layout, className }),
-        "break-words max-w-full whitespace-pre-wrap",
+        `break-words max-w-full whitespace-pre-wrap
+        bg-white/10 hover:bg-white/20 text-white  rounded-lg transition-all duration-200 border border-white/20
+        `
       )}
       ref={ref}
-      {...props}
-    >
+      {...props}>
       {isLoading ? (
         <div className="flex items-center space-x-2">
           <MessageLoading />
@@ -120,7 +122,7 @@ const ChatBubbleMessage = React.forwardRef<
         children
       )}
     </div>
-  ),
+  )
 );
 ChatBubbleMessage.displayName = "ChatBubbleMessage";
 
@@ -158,8 +160,7 @@ const ChatBubbleAction: React.FC<ChatBubbleActionProps> = ({
     size={size}
     className={className}
     onClick={onClick}
-    {...props}
-  >
+    {...props}>
     {icon}
   </Button>
 );
@@ -181,10 +182,9 @@ const ChatBubbleActionWrapper = React.forwardRef<
       variant === "sent"
         ? "-left-1 -translate-x-full flex-row-reverse"
         : "-right-1 translate-x-full",
-      className,
+      className
     )}
-    {...props}
-  >
+    {...props}>
     {children}
   </div>
 ));

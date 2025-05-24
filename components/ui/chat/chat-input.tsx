@@ -16,7 +16,8 @@ const ChatInput = React.forwardRef<any, any>(({ className, formRef , ...props },
       ref={formRef}
       name="message"
       className={cn(
-        "max-h-12 px-4 my-2 mb-2 py-3 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full rounded-md flex items-center h-16 resize-none",
+        "w-full bg-transparent text-white placeholder-gray-400 resize-none outline-none text-sm leading-relaxed h-fit",
+        // "max-h-12 px-4 my-2 mb-2 py-3 bg-background text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 w-full rounded-md flex items-center h-16 resize-none",
         className
       )}
       {...props}

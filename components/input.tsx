@@ -1,8 +1,7 @@
 "use client";
 import React from "react";
 import { ChatInput } from "./ui/chat/chat-input";
-import { Button } from "./ui/button";
-import { CornerDownLeft, Paperclip } from "lucide-react";
+import { Paperclip, Send } from "lucide-react";
 import { useUser } from "./context/userContext";
 import { backendUrl } from "../lib/backendUrl";
 import { Chat } from "@/type";
@@ -26,7 +25,6 @@ function InputBox({
   const [coolDownTime, setCoolDownTime] = React.useState(0);
   const [isLoading, setIsLoading] = React.useState(false);
   const [value, setValue] = React.useState("");
-
 
   const handleInputChange = (event: string) => {
     const inputValue = event;
@@ -72,6 +70,7 @@ function InputBox({
 
       setShowSuggestions(false);
       setError(null);
+      // scrollToBottom();
 
       let imageUrl = "";
       const existingFormData = new FormData(event.currentTarget);
@@ -207,7 +206,7 @@ function InputBox({
     } finally {
       console.log("Fetch chats completed");
       setFile(null);
-      setPreview(null); 
+      setPreview(null);
       setValue("");
       setIsLoading(false);
     }
@@ -232,7 +231,7 @@ function InputBox({
   };
 
   return (
-    <div className="flex w-full">
+    <div className="flex relative my-4">
       {file && (
         <div className="group relative w-10 h-10 m-2">
           <img
@@ -251,13 +250,27 @@ function InputBox({
           </button>
         </div>
       )}
+
+      {/* <button
+          className="text-white absolute left-[45%] -top-[50%] flex items-center justify-center w-10 h-10 
+          bg-gradient-to-r from-purple-500 to-violet-500 
+          rounded-full transition-all duration-300 transform hover:scale-110 shadow-lg 
+          border border-white/20 backdrop-blur-sm"
+          aria-label="Scroll up"
+          onClick={scrollToBottom}>
+          <ArrowUp className="w-4 h-4 text-white" />
+        </button> */}
+
       <form
         onSubmit={handleFormSubmit}
-        className="relative w-full rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring p-1">
+        // className="relative w-full rounded-lg border bg-background focus-within:ring-1 focus-within:ring-ring p-1">
+        className=" bg-black/20 rounded-2xl border border-white/30 p-4 shadow-2xl mx-auto"
+        style={{ width: "calc(100% - 2rem)" }}>
         {showSuggestions && (
-          <div className="absolute -top-10 left-0 w-full p-2 rounded-t-lg border bg-background  shadow-md">
-            <p className="text-sm text-gray-700">
-              Suggestions: <span className="font-bold">/imagine </span> to
+          <div className=" w-fit absolute backdrop-blur-lg -top-12 left-0 p-2 rounded-t-xl bg-black/20 border border-white/30 shadow-2xl">
+            <p className="text-sm text-white/80">
+              Suggestions:{" "}
+              <span className="font-bold text-white">/imagine </span> to
               generate an image
             </p>
           </div>
@@ -266,9 +279,9 @@ function InputBox({
           value={value}
           onChange={handleInputChange}
           placeholder="Type your message here..."
-          className="min-h-12 resize-none rounded-lg bg-background border-0 p-3 shadow-none focus-visible:ring-0"
+          className="resize-none focus-visible:ring-0"
         />
-        <div className="flex items-center p-3 pt-0">
+        <div className="flex items-center text-white">
           <input
             type="file"
             id="file-upload"
@@ -285,11 +298,16 @@ function InputBox({
             <Mic className="size-4" />
             <span className="sr-only">Use Microphone</span>
           </Button> */}
+          <div className="ml-auto flex items-center gap-2">
+            <button className="flex items-center justify-center w-10 h-10 bg-gradient-to-r from-purple-500 to-violet-500 hover:from-purple-600 hover:to-violet-600 disabled:from-gray-600 disabled:to-gray-700 rounded-full transition-all duration-200 transform hover:scale-105 disabled:scale-100 shadow-lg">
+              <Send className="w-4 h-4 text-white" />
+            </button>
+          </div>
 
-          <Button size="sm" className="ml-auto gap-1.5" disabled={isLoading}>
+          {/* <Button size="sm" className="ml-auto gap-1.5" disabled={isLoading}>
             Send Message
             <CornerDownLeft className="size-3.5" />
-          </Button>
+          </Button> */}
         </div>
       </form>
     </div>

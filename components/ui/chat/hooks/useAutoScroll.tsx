@@ -36,11 +36,12 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
 
   const scrollToBottom = useCallback(
     (instant?: boolean) => {
-      if (!scrollRef.current) return;
+      if (!scrollRef.current) {
+        return;
+      }
 
       const targetScrollTop =
         scrollRef.current.scrollHeight - scrollRef.current.clientHeight;
-
       if (instant) {
         scrollRef.current.scrollTop = targetScrollTop;
       } else {
@@ -124,6 +125,8 @@ export function useAutoScroll(options: UseAutoScrollOptions = {}) {
       }));
     }
   }, [checkIsAtBottom]);
+
+
 
   return {
     scrollRef,
