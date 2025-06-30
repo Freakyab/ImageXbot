@@ -9,11 +9,11 @@ import {
   BarChart3,
 } from "lucide-react";
 
-
 import axios from "axios";
 import TempChat from "@/components/tempChat";
 import { analysis } from "./action";
 import { DataTableDemo } from "@/components/analysisTable";
+import { backendUrl } from "@/lib/backendUrl";
 
 const PdfUploader = () => {
   const [file, setFile] = useState<File[] | null>(null);
@@ -118,9 +118,14 @@ const PdfUploader = () => {
 
       let uploadRes = [];
       for (const f of file) {
-        const sigRes = await axios.post("http://localhost:8000/get-signature");
+        const sigRes = await axios.post(
+          `${backendUrl}/get-signature`,
+          {
+            fileName: f.name,
+            fileType: f.type,
+          }
+        );
         const { timestamp, signature, apiKey, cloudName, folder } = sigRes.data;
-
         const formData = new FormData();
         formData.append("file", f);
         formData.append("api_key", apiKey);
@@ -163,7 +168,6 @@ const PdfUploader = () => {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
-  console.log();
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <div className=" w-[90%] mx-auto p-6">

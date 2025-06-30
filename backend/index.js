@@ -35,7 +35,6 @@ app.post("/get-signature", (req, res) => {
     process.env.CLOUDINARY_API_SECRET
   );
 
-  console.log("Generated signature:", signature);
 
   res.json({
     timestamp,
@@ -48,7 +47,6 @@ app.post("/get-signature", (req, res) => {
 
 app.delete("/delete-pdf", async (req, res) => {
   const { public_id } = req.body;
-  console.log("Received public_id:", public_id);
   if (!public_id) {
     return res.status(400).json({ error: "public_id is required" });
   }

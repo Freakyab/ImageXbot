@@ -2,6 +2,7 @@
 import { createPartFromUri, Type } from "@google/genai";
 import axios from "axios";
 import { ai } from "@/lib/google";
+import { backendUrl } from "@/lib/backendUrl";
 
 export async function analysis(
   files: Array<{ url: string; public_id: string }>
@@ -17,7 +18,8 @@ export async function analysis(
         try {
           await new Promise((resolve) => setTimeout(resolve, 5000));
           const deleteCloudinaryFile = await axios.delete(
-            "http://localhost:8000/delete-pdf",
+            // backendUrl +"delete-pdf",
+            `${backendUrl}/delete-pdf`,
             {
               data: { public_id },
               headers: { "Content-Type": "application/json" },

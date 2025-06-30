@@ -45,7 +45,7 @@ function MessageBox({
         if (data.status) {
           setChats(data.chats);
         } else {
-          console.log("Error fetching chats:", data.message);
+          console.error("Error fetching chats:", data.message);
         }
       } catch (error) {
         console.error("Error fetching chats:", error);
