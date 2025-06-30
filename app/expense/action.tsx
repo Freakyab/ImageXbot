@@ -3,88 +3,72 @@ import { createPartFromUri, Type } from "@google/genai";
 import axios from "axios";
 import { ai } from "@/lib/google";
 
-export async function analysis({
-  url,
-  public_id,
-}: {
-  url: string;
-  public_id: string;
-}) {
+export async function analysis(
+  files: Array<{ url: string; public_id: string }>
+) {
   try {
-    if (!url) {
-      throw new Error("URL is required for analysis.");
-    }
-    if (!public_id) {
-      throw new Error("Public ID is required for analysis.");
+    if (!files || files.length === 0) {
+      throw new Error("At least one file is required for analysis.");
     }
 
-    // Schedule file deletion in the background
-    const deleteFile = async () => {
-      try {
-        // Wait 5 seconds before deleting
-        await new Promise((resolve) => setTimeout(resolve, 5000));
-
-        const deleteCloudinaryFile = await axios.delete(
-          `http://localhost:8000/delete-pdf`,
-          {
-            data: {
-              public_id: public_id,
-            },
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        console.log("File deleted");
-        console.log(deleteCloudinaryFile.data);
-      } catch (error) {
-        console.error("Error deleting file:", error);
-      }
-    };
-
-    // Execute deletion without waiting for it to complete
-    setTimeout(deleteFile, 5000);
-
-    const pdfBuffer = await fetch(url).then((response) =>
-      response.arrayBuffer()
-    );
-
-    const fileBlob = new Blob([pdfBuffer], { type: "application/pdf" });
-
-    const file = await ai.files.upload({
-      file: fileBlob,
-      config: {
-        displayName: "expense.pdf",
-      },
+    // Schedule deletion for each file
+    files.forEach(({ public_id }) => {
+      const deleteFile = async () => {
+        try {
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          const deleteCloudinaryFile = await axios.delete(
+            "http://localhost:8000/delete-pdf",
+            {
+              data: { public_id },
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+          console.log("Deleted file:", public_id);
+        } catch (error) {
+          console.error(`Error deleting file (${public_id}):`, error);
+        }
+      };
+      setTimeout(deleteFile, 5000);
     });
 
-    if (!file.name) {
-      throw new Error("File name is undefined");
-    }
+    // Upload all files
+    const uploadedFiles = await Promise.all(
+      files.map(async ({ url }) => {
+        const pdfBuffer = await fetch(url).then((res) => res.arrayBuffer());
+        const fileBlob = new Blob([pdfBuffer], { type: "application/pdf" });
+        const uploaded = await ai.files.upload({
+          file: fileBlob,
+          config: { displayName: "expense.pdf" },
+        });
 
-    let getFile = await ai.files.get({ name: file.name });
-    while (getFile.state === "PROCESSING") {
-      getFile = await ai.files.get({ name: file.name });
-      console.log(`current file status: ${getFile.state}`);
-      console.log("File is still processing, retrying in 5 seconds");
+        if (!uploaded.name) throw new Error("File name is undefined");
 
-      await new Promise((resolve) => {
-        setTimeout(resolve, 5000);
-      });
-    }
-    if (getFile.state === "FAILED") {
-      throw new Error("File processing failed.");
-    }
-    // Add the file to the contents.
+        // Wait for processing
+        let getFile = await ai.files.get({ name: uploaded.name });
+        while (getFile.state === "PROCESSING") {
+          console.log(`Processing ${uploaded.name}...`);
+          await new Promise((resolve) => setTimeout(resolve, 5000));
+          getFile = await ai.files.get({ name: uploaded.name });
+        }
+
+        if (getFile.state === "FAILED")
+          throw new Error("File processing failed.");
+
+        return getFile;
+      })
+    );
+
+    // Prepare content
     const content: Array<string | ReturnType<typeof createPartFromUri>> = [
       `Analyze the attached bank statement PDF and extract the following information:
   1. Account holder's name.
   2. Starting and ending date of the expense period.
   3. Beginning and ending balance.
   4. All transactions, including:
-    - Date
+      - Bank name (if available)
+    - Date (format: DD/MM/YYYY)
     - Description
-    - Ref No. or Cheque No.
+    - Ref No. or Cheque No. or Instrument ID
     - Amount
     - Whether it's a credit or debit (as 'category')
     - Balance after transaction
@@ -98,11 +82,15 @@ remeber all the transactions are in INR currency and the amount is in rupees.
 `,
     ];
 
-    if (file.uri && file.mimeType) {
-      const fileContent = createPartFromUri(file.uri, file.mimeType);
+    // Add each file's content
+    uploadedFiles.forEach((file) => {
+      if (file.uri && file.mimeType) {
+        const fileContent = createPartFromUri(file.uri, file.mimeType);
+        content.push(fileContent);
+      }
+    });
 
-      content.push(fileContent);
-    }
+    // Request structured JSON analysis
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
       contents: content,
@@ -140,6 +128,11 @@ remeber all the transactions are in INR currency and the amount is in rupees.
               items: {
                 type: Type.OBJECT,
                 properties: {
+                  bank_Name: {
+                    type: Type.STRING,
+                    description:
+                      "Get name of the bank from IFSC Code or IFS Code, or if previously mentioned, use that. Use abbreviation if available.",
+                  },
                   date: {
                     type: Type.STRING,
                     description: "Date of the particular transaction",
@@ -151,7 +144,7 @@ remeber all the transactions are in INR currency and the amount is in rupees.
                   ref_No: {
                     type: Type.STRING,
                     description:
-                      "Ref No./ChequeNo. of the particular transaction",
+                      "Ref No./ChequeNo./Instrument ID of the particular transaction",
                   },
                   amount: {
                     type: Type.NUMBER,
@@ -159,13 +152,16 @@ remeber all the transactions are in INR currency and the amount is in rupees.
                   },
                   ai: {
                     type: Type.STRING,
-                    description:
-                      "create an suitable category for the particular transaction as per description like petrol, food, etc.",
+                    description: `create an suitable category for the particular transaction as per description like petrol, food, etc.
+                      Go through the each words of description and find the most relevant category.
+                      If the description is not clear, use a general category like 'other' or 'miscellaneous'.
+                      If the description includes an shop name or a person name, use that as the category.
+                      `,
                   },
                   category: {
                     type: Type.STRING,
                     description:
-                      "Category of the particular transaction (credit/debit)",
+                      "Category of the particular transaction (credit/debit). remember CR is credit and DR is debit",
                   },
                   balance_after_Transaction: {
                     type: Type.NUMBER,
@@ -178,12 +174,10 @@ remeber all the transactions are in INR currency and the amount is in rupees.
         },
       },
     });
-    const result = response.text;
-    // console.log(response.text);
 
-    if (!result) {
-      throw new Error("No result returned from the AI model.");
-    }
+    const result = response.text;
+    if (!result) throw new Error("No response from AI model.");
+
     const parsedResult = JSON.parse(result);
     if (!parsedResult || typeof parsedResult !== "object") {
       throw new Error("Parsed result is not a valid object.");
@@ -191,7 +185,7 @@ remeber all the transactions are in INR currency and the amount is in rupees.
 
     return parsedResult;
   } catch (error) {
-    console.error("Error during analysis:", error);
+    console.error("Error in analysis:", error);
     return;
   }
 }

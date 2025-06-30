@@ -51,16 +51,23 @@ export const columns: ColumnDef<Transaction>[] = [
     enableHiding: false,
   },
   {
+    accessorKey: "bank_Name",
+    header: "Bank Name",
+    cell: ({ row }) => (
+      <div className="capitalize">{row.getValue("bank_Name")}</div>
+    ),
+  },  
+  {
     accessorKey: "date",
     header: "Date",
     cell: ({ row }) => {
-      const date = new Date(row.getValue("date"));
-      const formattedDate = date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      });
-      return <div className="text-nowrap py-2">{formattedDate}</div>;
+      // const date = new Date(row.getValue("date"));
+      // const formattedDate = date.toLocaleDateString("en-GB", {
+      //   day: "2-digit",
+      //   month: "2-digit",
+      //   year: "numeric",
+      // });
+      return <div className="text-nowrap py-2">{row.getValue("date")}</div>;
     },
   },
   {
@@ -79,7 +86,16 @@ export const columns: ColumnDef<Transaction>[] = [
   },
   {
     accessorKey: "amount",
-    header: "Amount",
+    // header: "Amount",
+     header: ({ column }) => (
+      <Button
+        variant="ghost"
+        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+        className="px-0 font-semibold">
+        Amount
+        <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-muted-foreground" />
+      </Button>
+    ),
     cell: ({ row }) => {
       const amount = row.getValue("amount") + "/-";
       const category = row.getValue("category");
@@ -157,7 +173,7 @@ export const columns: ColumnDef<Transaction>[] = [
   },
 ];
 
-export function DataTableDemo({ data = dummyData }: { data?: Transaction[] }) {
+export function DataTableDemo({ data  }: { data: Transaction[] }) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []

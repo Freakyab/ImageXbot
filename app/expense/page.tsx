@@ -9,12 +9,6 @@ import {
   BarChart3,
 } from "lucide-react";
 
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
 
 import axios from "axios";
 import TempChat from "@/components/tempChat";
@@ -22,7 +16,7 @@ import { analysis } from "./action";
 import { DataTableDemo } from "@/components/analysisTable";
 
 const PdfUploader = () => {
-  const [file, setFile] = useState<File | null>(null);
+  const [file, setFile] = useState<File[] | null>(null);
   const [uploading, setUploading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
   const [dragActive, setDragActive] = useState(false);
@@ -36,26 +30,19 @@ const PdfUploader = () => {
     }
   }, [analysisResult]);
 
-  const fetchData = async ({
-    url,
-    public_id,
-  }: {
-    url: string;
-    public_id: string;
-  }) => {
+  const fetchData = async (
+    items: {
+      url: string;
+      public_id: string;
+    }[]
+  ) => {
     try {
-      if (!url) {
-        throw new Error("URL is required for analysis.");
-      }
-      if (!public_id) {
-        throw new Error("Public ID is required for analysis.");
+      if (items.length === 0) {
+        throw new Error("No items provided for analysis.");
       }
 
       // Mock analysis function - replace with your actual analysis call
-      const response = await analysis({
-        public_id: public_id,
-        url: url,
-      });
+      const response = await analysis(items);
 
       setAnalysisResult(response);
       console.log("Analysis Result:", response);
@@ -83,7 +70,7 @@ const PdfUploader = () => {
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
       if (droppedFile.type === "application/pdf") {
-        setFile(droppedFile);
+        setFile([droppedFile]);
         setError(null);
       } else {
         setError("Please upload a PDF file only.");
@@ -92,14 +79,21 @@ const PdfUploader = () => {
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const selectedFile = e.target.files[0];
-      if (selectedFile.type === "application/pdf") {
-        setFile(selectedFile);
-        setError(null);
-      } else {
-        setError("Please upload a PDF file only.");
+    if (e.target.files && e.target.files.length > 0) {
+      const selectedFiles = Array.from(e.target.files);
+      const invalidFiles = selectedFiles.filter(
+        (file) => file.type !== "application/pdf"
+      );
+
+      if (invalidFiles.length > 0) {
+        setError("Please upload PDF files only.");
+        return;
       }
+
+      // For now, just use the first file since the rest of the code expects a single file
+      // You would need to update other parts of the component to handle multiple files
+      setFile(selectedFiles);
+      setError(null);
     }
   };
 
@@ -122,29 +116,35 @@ const PdfUploader = () => {
         });
       }, 200);
 
-      // Mock API calls - replace with your actual implementation
+      let uploadRes = [];
+      for (const f of file) {
+        const sigRes = await axios.post("http://localhost:8000/get-signature");
+        const { timestamp, signature, apiKey, cloudName, folder } = sigRes.data;
 
-      const sigRes = await axios.post("http://localhost:8000/get-signature");
-      const { timestamp, signature, apiKey, cloudName, folder } = sigRes.data;
+        const formData = new FormData();
+        formData.append("file", f);
+        formData.append("api_key", apiKey);
+        formData.append("timestamp", timestamp);
+        formData.append("signature", signature);
+        formData.append("folder", folder);
 
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("api_key", apiKey);
-      formData.append("timestamp", timestamp);
-      formData.append("signature", signature);
-      formData.append("folder", folder);
-
-      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
-      const uploadRes = await axios.post(cloudinaryUrl, formData);
-
+        const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
+        let result = await axios.post(cloudinaryUrl, formData);
+        uploadRes.push({
+          url: result.data.secure_url,
+          public_id: result.data.public_id,
+        });
+        if (!result.data.secure_url || !result.data.public_id) {
+          throw new Error(
+            "Upload failed. No secure URL or public ID returned."
+          );
+        }
+      }
       // Mock successful upload
       await new Promise((resolve) => setTimeout(resolve, 2000));
       setUploadProgress(100);
 
-      await fetchData({
-        url: uploadRes.data.secure_url,
-        public_id: uploadRes.data.public_id,
-      });
+      await fetchData(uploadRes); // Use the first file for analysis
     } catch (err) {
       console.error(err);
       setError(
@@ -203,6 +203,7 @@ const PdfUploader = () => {
                 onChange={handleFileChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 disabled={uploading}
+                multiple
               />
 
               <div className="space-y-4">
@@ -226,27 +227,31 @@ const PdfUploader = () => {
                       File Selected
                     </p>
                     <div className="mt-3 p-4 bg-white rounded-lg border border-green-200">
-                      <div className="flex items-center gap-3">
-                        <FileText className="w-6 h-6 text-red-500" />
-                        <div className="flex-1 text-left">
-                          <p className="font-medium text-gray-800">
-                            {file.name}
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {formatFileSize(file.size)}
-                          </p>
+                      {file.map((_file, index) => (
+                        <div
+                          className="flex items-center gap-3 mb-2"
+                          key={index}>
+                          <FileText className="w-6 h-6 text-red-500" />
+                          <div className="flex-1 text-left">
+                            <p className="font-medium text-gray-800">
+                              {_file.name}
+                            </p>
+                            <p className="text-sm text-gray-500">
+                              {formatFileSize(_file.size)}
+                            </p>
+                          </div>
                         </div>
-                      </div>
+                      ))}
                     </div>
                   </div>
                 ) : (
                   <div>
                     <p className="text-lg font-semibold text-gray-700">
-                      Drop your PDF file here, or click to browse
+                      Drop your PDF files here, or click to browse
                     </p>
                     <p className="text-gray-500">
                       Supports bank statements, financial reports, and expense
-                      documents
+                      documents (multiple files allowed)
                     </p>
                   </div>
                 )}
@@ -342,12 +347,12 @@ const PdfUploader = () => {
                     <AccordionTrigger
                     asChild
                     > */}
-                      <h3 className="font-semibold text-gray-800 mb-3">
-                        Transactions
-                      </h3>
-                      <DataTableDemo data={analysisResult.transactions} />
-                      {/* <DataTableDemo /> */}
-                    {/* </AccordionTrigger>
+                <h3 className="font-semibold text-gray-800 mb-3">
+                  Transactions
+                </h3>
+                <DataTableDemo data={analysisResult.transactions} />
+                {/* <DataTableDemo /> */}
+                {/* </AccordionTrigger>
                     <AccordionContent>
                     </AccordionContent>
                   </AccordionItem>
@@ -358,7 +363,7 @@ const PdfUploader = () => {
               <TempChat analysisResult={analysisResult} />
             </div>
           </div>
-         )} 
+        )}
       </div>
     </div>
   );

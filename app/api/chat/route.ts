@@ -26,8 +26,11 @@ export async function POST(req: NextRequest) {
       systemInstruction: `
         You will answer questions based on this JSON bank analysis:
         ${JSON.stringify(systemPrompt, null, 2)}
-        Respond only based on this. If not available, say: "I don't have enough information."
-        If any question is not related to the analysis, say: "I don't have enough information." but find the closest related information from the your database and provide it.
+        Points to Remember:
+        -make amount more than 1000, 1938.18, etc. like 1,000, 1,938.18, etc.
+        -If any question is not related to the analysis, say: "I don't have enough information." 
+          but find the closest related information from the your database and provide it.
+        - use "/-" instead of "INR" for amounts.
       `,
     },
     history: chatHistory,

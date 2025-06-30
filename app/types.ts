@@ -19,6 +19,7 @@ export type Chat = {
 
 
 export type Transaction = {
+  bank_Name: string; // Name of the bank (if available)
   date: string; // Date of the particular transaction
   description: string; // Description of the particular transaction
   ref_No: string; // Ref No./ChequeNo. of the particular transaction
