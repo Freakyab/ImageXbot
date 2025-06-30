@@ -4,7 +4,7 @@ import { googleLogout, useGoogleLogin } from "@react-oauth/google";
 import { backendUrl } from "../lib/backendUrl";
 import { useUser } from "./context/userContext";
 import toast from "react-hot-toast";
-import { Chat } from "@/type";
+import { Chat } from "@/app/types";
 
 export default function Navbar({ chats }: { chats: Chat[] }) {
   // Mock authentication state - replace with your actual auth state

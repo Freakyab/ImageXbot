@@ -8,7 +8,7 @@ import {
 } from "./ui/chat/chat-bubble";
 import { ChatMessageList } from "./ui/chat/chat-message-list";
 import { Copy, DownloadIcon, RefreshCcw, Zap } from "lucide-react";
-import { Chat } from "@/type";
+import { Chat } from "@/app/types";
 import { backendUrl } from "../lib/backendUrl";
 import { useUser } from "./context/userContext";
 import toast from "react-hot-toast";

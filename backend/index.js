@@ -27,6 +27,48 @@ app.get("/", async (_, res) => {
   }
 });
 
+app.post("/get-signature", (req, res) => {
+  const timestamp = Math.round(new Date().getTime() / 1000);
+
+  const signature = cloudinary.utils.api_sign_request(
+    { timestamp, folder: "pdfs" },
+    process.env.CLOUDINARY_API_SECRET
+  );
+
+  console.log("Generated signature:", signature);
+
+  res.json({
+    timestamp,
+    signature,
+    apiKey: process.env.CLOUDINARY_API_KEY,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME,
+    folder: "pdfs",
+  });
+});
+
+app.delete("/delete-pdf", async (req, res) => {
+  const { public_id } = req.body;
+  console.log("Received public_id:", public_id);
+  if (!public_id) {
+    return res.status(400).json({ error: "public_id is required" });
+  }
+
+  try {
+    const result = await cloudinary.uploader.destroy(public_id, {
+      resource_type: "image", // PDFs are "raw" files in Cloudinary
+    });
+
+    if (result.result === "ok") {
+      return res.status(200).json({ message: "PDF deleted successfully" });
+    } else {
+      return res.status(400).json({ error: "Failed to delete PDF", result });
+    }
+  } catch (error) {
+    console.error("Cloudinary delete error:", error);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
 app.post("/login", async (req, res) => {
   try {
     const { name, email, password, picture } = req.body;

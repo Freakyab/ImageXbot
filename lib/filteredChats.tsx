@@ -1,4 +1,4 @@
-import { Chat } from "@/type";
+import { Chat } from "@/app/types";
 
 function filteredChats(chats: Chat[]) {
     

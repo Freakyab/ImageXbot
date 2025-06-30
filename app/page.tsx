@@ -2,7 +2,7 @@
 import InputBox from "@/components/input";
 import MessageBox from "@/components/messageBox";
 import Navbar from "@/components/navbar";
-import { Chat } from "@/type";
+import { Chat } from "@/app/types";
 import { useState } from "react";
 
 export default function Home() {

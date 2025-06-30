@@ -4,7 +4,7 @@ import { ChatInput } from "./ui/chat/chat-input";
 import { Paperclip, Send } from "lucide-react";
 import { useUser } from "./context/userContext";
 import { backendUrl } from "../lib/backendUrl";
-import { Chat } from "@/type";
+import { Chat } from "@/app/types";
 import { toast } from "react-hot-toast";
 import { timer } from "@/lib/timer";
 import filteredChats from "@/lib/filteredChats";
